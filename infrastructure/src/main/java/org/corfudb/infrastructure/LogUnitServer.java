@@ -36,7 +36,6 @@ import org.corfudb.runtime.view.stream.StreamAddressSpace;
 import org.corfudb.util.Utils;
 
 import java.lang.invoke.MethodHandles;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,10 +83,10 @@ public class LogUnitServer extends AbstractServer {
     private final ServerContext serverContext;
 
     /**
-     * Handler for this server.
+     * HandlerMethod for this server.
      */
     @Getter
-    private final CorfuMsgHandler handler = CorfuMsgHandler.generateHandler(MethodHandles.lookup(), this);
+    private final HandlerMethods handler = HandlerMethods.generateHandler(MethodHandles.lookup(), this);
 
     /**
      * This cache services requests for data at various addresses. In a memory implementation,
@@ -100,16 +99,6 @@ public class LogUnitServer extends AbstractServer {
     private final BatchProcessor batchWriter;
 
     private ExecutorService executor;
-
-    @Override
-    public ExecutorService getExecutor(CorfuMsgType corfuMsgType) {
-        return executor;
-    }
-
-    @Override
-    public List<ExecutorService> getExecutors() {
-        return Collections.singletonList(executor);
-    }
 
     /**
      * Returns a new LogUnitServer.
@@ -138,6 +127,12 @@ public class LogUnitServer extends AbstractServer {
         batchWriter = new BatchProcessor(streamLog, serverContext.getServerEpoch(), !config.isNoSync());
 
         logCleaner = new StreamLogCompaction(streamLog, 10, 45, TimeUnit.MINUTES, ServerContext.SHUTDOWN_TIMER);
+    }
+
+
+    @Override
+    protected void processRequest(CorfuMsg msg, ChannelHandlerContext ctx, IServerRouter r) {
+        executor.submit(() -> getHandler().handle(msg, ctx, r));
     }
 
     /**
@@ -410,6 +405,7 @@ public class LogUnitServer extends AbstractServer {
     @Override
     public void shutdown() {
         super.shutdown();
+        executor.shutdown();
         logCleaner.shutdown();
         batchWriter.close();
     }
