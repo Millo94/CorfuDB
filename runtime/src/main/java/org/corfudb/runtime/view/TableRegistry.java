@@ -11,6 +11,8 @@ import java.util.Deque;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Supplier;
@@ -302,7 +304,8 @@ public class TableRegistry {
                 defaultMetadataMessage,
                 this.runtime,
                 this.protobufSerializer,
-                mapSupplier, versionPolicy);
+                mapSupplier, versionPolicy, tableOptions.getStreamTags()
+                );
         tableMap.put(fullyQualifiedTableName, (Table<Message, Message, Message>) table);
 
         registerTable(namespace, tableName, kClass, vClass, mClass, tableOptions);

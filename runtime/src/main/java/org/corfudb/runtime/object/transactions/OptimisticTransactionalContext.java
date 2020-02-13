@@ -1,8 +1,8 @@
 package org.corfudb.runtime.object.transactions;
 
-import static org.corfudb.runtime.view.ObjectsView.TRANSACTION_STREAM_ID;
-
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -48,7 +48,6 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
     @Getter
     private final Set<ICorfuSMRProxyInternal> modifiedProxies =
             new HashSet<>();
-
 
     OptimisticTransactionalContext(Transaction transaction) {
         super(transaction);
@@ -180,6 +179,7 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
                 this, proxy, updateEntry.getSMRMethod(),
                 updateEntry.getSMRArguments(), conflictObjects);
 
+        modifiedProxies.add(proxy);
         return addToWriteSet(proxy, updateEntry, conflictObjects);
     }
 
@@ -239,12 +239,13 @@ public class OptimisticTransactionalContext extends AbstractTransactionalContext
             return NOWRITE_ADDRESS;
         }
 
-        // Write to the transaction stream if transaction logging is enabled
-        Set<UUID> affectedStreamsIds = new HashSet<>(getWriteSetInfo().getWriteSet().getEntryMap().keySet());
+        Set<UUID> affectedStreamsIds = new HashSet<>(getWriteSetInfo()
+            .getWriteSet().getEntryMap().keySet());
 
-        if (this.transaction.isLoggingEnabled()) {
-            affectedStreamsIds.add(TRANSACTION_STREAM_ID);
-        }
+        modifiedProxies.forEach( p ->
+        {
+            affectedStreamsIds.addAll(p.getStreamTags());
+        });
 
         UUID[] affectedStreams = affectedStreamsIds.toArray(new UUID[affectedStreamsIds.size()]);
 

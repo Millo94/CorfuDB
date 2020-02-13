@@ -19,6 +19,7 @@ import org.corfudb.runtime.object.ICorfuVersionPolicy;
 import org.corfudb.runtime.object.transactions.TransactionType;
 
 import org.corfudb.runtime.object.transactions.TransactionalContext;
+import org.corfudb.runtime.view.SMRObject;
 import org.corfudb.util.serializer.ISerializer;
 import lombok.Getter;
 
@@ -66,7 +67,8 @@ public class Table<K extends Message, V extends Message, M extends Message> {
                  @Nonnull final CorfuRuntime corfuRuntime,
                  @Nonnull final ISerializer serializer,
                  @Nonnull final Supplier<StreamingMap<K, V>> streamingMapSupplier,
-                 @NonNull final ICorfuVersionPolicy.VersionPolicy versionPolicy) {
+                 @NonNull final ICorfuVersionPolicy.VersionPolicy versionPolicy,
+                 final UUID[] streamTags) {
 
         this.corfuRuntime = corfuRuntime;
         this.namespace = namespace;
@@ -78,12 +80,15 @@ public class Table<K extends Message, V extends Message, M extends Message> {
                         .build())
                 .orElse(MetadataOptions.builder().build());
 
-        this.corfuTable = corfuRuntime.getObjectsView().build()
+        SMRObject.Builder builder = corfuRuntime.getObjectsView().build()
                 .setTypeToken(CorfuTable.<K, CorfuRecord<V, M>>getTableType())
                 .setStreamName(this.fullyQualifiedTableName)
                 .setSerializer(serializer)
-                .setArguments(new ProtobufIndexer(valueSchema), streamingMapSupplier, versionPolicy)
-                .open();
+                .setArguments(new ProtobufIndexer(valueSchema), streamingMapSupplier, versionPolicy);
+        if (streamTags != null) {
+            builder.setStreamTags(streamTags);
+        }
+        this.corfuTable = (CorfuTable<K, CorfuRecord<V, M>>) builder.open();
     }
 
     /**
