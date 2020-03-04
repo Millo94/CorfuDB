@@ -125,7 +125,7 @@ public class LogUnitServer extends AbstractServer {
             streamLog = new StreamLogFiles(serverContext, config.isNoVerify());
         }
 
-        dataCache = new LogUnitServerCache(config, streamLog);
+        dataCache = new LogUnitServerCache(config, streamLog, executor);
         batchWriter = new BatchProcessor(streamLog, serverContext.getServerEpoch(), !config.isNoSync());
 
         logCleaner = new StreamLogCompaction(streamLog, 10, 45, TimeUnit.MINUTES, ServerContext.SHUTDOWN_TIMER);

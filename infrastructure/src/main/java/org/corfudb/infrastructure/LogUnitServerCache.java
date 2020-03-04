@@ -10,6 +10,8 @@ import org.corfudb.infrastructure.log.StreamLog;
 import org.corfudb.protocols.wireprotocol.ILogData;
 import org.corfudb.protocols.wireprotocol.LogData;
 
+import java.util.concurrent.ExecutorService;
+
 /**
  * LogUnit server cache.
  * <p>
@@ -24,11 +26,12 @@ public class LogUnitServerCache {
     private final LoadingCache<Long, ILogData> dataCache;
     private final StreamLog streamLog;
 
-    public LogUnitServerCache(LogUnitServerConfig config, StreamLog streamLog) {
+    public LogUnitServerCache(LogUnitServerConfig config, StreamLog streamLog, ExecutorService executorService) {
         this.streamLog = streamLog;
         this.dataCache = Caffeine.newBuilder()
                 .<Long, ILogData>weigher((addr, logData) -> logData.getSizeEstimate())
                 .maximumWeight(config.getMaxCacheSize())
+                .executor(executorService)
                 .removalListener(this::handleEviction)
                 .build(this::handleRetrieval);
     }
